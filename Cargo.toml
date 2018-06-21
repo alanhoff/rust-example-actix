@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Alan Hoffmeister <alanhoffmeister@gmail.com>"]
 
 [dependencies]
-tokio = "0.1.6"
-actix = "0.5.7"
+tokio = "0.1.7"
+actix = {git = "https://github.com/habnabit/actix.git", rev = "769cbcc643eb9b42a109d7f135e3994a55610a09" }
 futures = "0.2.1"
-tokio-io = "0.1.6"
+tokio-io = "0.1.7"
 bytes = "0.4.7"

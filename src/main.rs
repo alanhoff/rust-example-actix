@@ -5,7 +5,7 @@ extern crate tokio_io;
 
 use actix::io::{FramedWrite, WriteHandler};
 use actix::prelude::*;
-use actix::{Actor, Addr, Context, Handler, Syn};
+use actix::{Actor, Addr, Context, Handler};
 use bytes::Bytes;
 use tokio::io;
 use tokio::io::{ReadHalf, WriteHalf};
@@ -26,9 +26,9 @@ struct AttachReadStream {
 }
 
 impl StreamHandler<Vec<u8>, io::Error> for Connection {
-    fn handle(&mut self, buffer: Vec<u8>, _ctx: &mut Context<Self>) {
+    fn handle(&mut self, buffer: Result<Option<Vec<u8>>, io::Error>, _ctx: &mut Context<Self>) {
         println!("I'll write");
-        self.writer.write(Bytes::from(buffer));
+        self.writer.write(Bytes::from(buffer.unwrap().unwrap()));
     }
 }
 
@@ -66,13 +66,18 @@ impl Stream for ReadHalfStream {
 struct Server;
 
 impl StreamHandler<TcpStream, io::Error> for Server {
-    fn handle(&mut self, connection: TcpStream, _ctx: &mut Self::Context) {
+    fn handle(
+        &mut self,
+        connection: Result<Option<TcpStream>, io::Error>,
+        _ctx: &mut Self::Context,
+    ) {
+        let connection = connection.unwrap().unwrap();
         connection
             .set_nodelay(true)
             .expect("Unable to set nodelayx");
 
         let (read, write) = connection.split();
-        let addr: Addr<Syn, _> = Connection::create(move |ctx| {
+        let addr = Connection::create(move |ctx| {
             let mut writer = FramedWrite::new(write, BytesCodec::new(), ctx);
             writer.set_buffer_capacity(0, 0);
 
@@ -97,8 +102,7 @@ impl Actor for Server {
 }
 
 fn main() {
-    let system = actix::System::new("system");
-    let _: Addr<Syn, _> = Server.start();
-
-    system.run();
+    actix::System::run(|| {
+        Server.start();
+    });
 }
